@@ -1,4 +1,10 @@
-const Form = ({addPerson, newName, handleNewName, newNumber, handleNewNumber}) => {
+const Form = ({
+  addPerson,
+  newName,
+  handleNewName,
+  newNumber,
+  handleNewNumber,
+}) => {
   return (
     <form onSubmit={addPerson}>
       <div>

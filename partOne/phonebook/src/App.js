@@ -1,24 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Filter from "./components/Filter";
 import Contacts from "./components/Contacts";
 import Form from "./components/Form";
+import personsService from "./services/persons";
 
 const App = () => {
-  const [persons, setPersons] = useState([
-    { name: "Arto Hellas", number: "01628488915" },
-    { name: "Ada Lovelace", number: "39-44-5323523" },
-    { name: "Dan Abramov", number: "12-43-234345" },
-    { name: "Mary Poppendieck", number: "39-23-6423122" },
-  ]);
+  const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState("");
   const [newNumber, setNewNumber] = useState("");
   const [filter, setFilter] = useState(false);
   const [filterString, setFilterString] = useState("");
+  let match = false;
+  let matchingPerson = {};
   const contactsToShow = filter
     ? persons.filter((person) =>
         person.name.toLowerCase().includes(filterString.toLowerCase())
       )
     : persons;
+
+  useEffect(() => {
+    personsService.getAll().then((initialPersons) => {
+      setPersons(initialPersons);
+    });
+  }, []);
 
   const handleNewName = (e) => {
     setNewName(e.target.value);
@@ -47,15 +51,55 @@ const App = () => {
       number: updatedNumber,
     };
 
-    persons.forEach((person) => {
-      if (JSON.stringify(person) === JSON.stringify(personObj)) {
-        alert(`${personObj.name} has already been added to the phonebook`);
-      } else {
-        setPersons(persons.concat(personObj));
+    //check if updateName === any other name
+    persons.forEach(p => {
+      if(p.name === updatedName) {
+        match = true;
+        matchingPerson = p;
+        return;
       }
-      setNewName("");
-      setNewNumber("");
-    });
+    })
+    // const matchingPerson = persons.find((p) => (p.name === updatedName));
+    if (match) {
+      if (
+        window.confirm(
+          `${personObj.name} is already in your contacts. Replace current number with new number?`
+        )
+      ) {
+        personsService.update(matchingPerson.id, personObj)
+        .then(() => {
+          const newPersons = persons.map((p) => {
+            if (p.name === updatedName) {
+              return {
+                ...p,
+                number: updatedNumber,
+              };
+            } else {
+              return {
+                ...p,
+              };
+            }
+          });
+
+          console.log(newPersons);
+          setPersons(newPersons);
+        });
+      }
+    } else {
+      personsService.create(personObj).then((returnedPerson) => {
+        setPersons(persons.concat(returnedPerson));
+      });
+    }
+    setNewName("");
+    setNewNumber("");
+  };
+
+  const removePerson = (person) => {
+    if (window.confirm(`Delete ${person.name}?`)) {
+      personsService
+        .remove(person)
+        .then(setPersons(persons.filter((p) => p.id !== person.id)));
+    }
   };
 
   return (
@@ -72,7 +116,7 @@ const App = () => {
       <h2>Contacts</h2>
       <h3>Filter by name</h3>
       <Filter func={handleFilter} />
-      <Contacts persons={contactsToShow} />
+      <Contacts persons={contactsToShow} removePerson={removePerson} />
     </div>
   );
 };

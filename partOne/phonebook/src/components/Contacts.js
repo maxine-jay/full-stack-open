@@ -1,13 +1,13 @@
 import Person from "./Person";
 
-const Contacts = ({persons}) => {
-    return (
-        <ul>
-        {persons.map((person) => (
-          <Person key={person.name} person={person} />
-        ))}
-      </ul>
-    )
-}
+const Contacts = ({ persons, removePerson }) => {
+  return (
+    <ul>
+      {persons.map((person) => (
+        <Person key={person.name} person={person} removePerson={removePerson} />
+      ))}
+    </ul>
+  );
+};
 
 export default Contacts;
