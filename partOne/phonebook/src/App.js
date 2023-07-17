@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import Filter from "./components/Filter";
 import Contacts from "./components/Contacts";
 import Form from "./components/Form";
+import Notification from "./components/Notification";
 import personsService from "./services/persons";
+import "./index.css";
 
 const App = () => {
   const [persons, setPersons] = useState([]);
@@ -10,6 +12,8 @@ const App = () => {
   const [newNumber, setNewNumber] = useState("");
   const [filter, setFilter] = useState(false);
   const [filterString, setFilterString] = useState("");
+  const [message, setMessage] = useState(null);
+  const [messageType, setMessageType] = useState("success");
   let match = false;
   let matchingPerson = {};
   const contactsToShow = filter
@@ -51,43 +55,46 @@ const App = () => {
       number: updatedNumber,
     };
 
-    //check if updateName === any other name
-    persons.forEach(p => {
-      if(p.name === updatedName) {
+    persons.forEach((p) => {
+      if (p.name === updatedName) {
         match = true;
         matchingPerson = p;
         return;
       }
-    })
-    // const matchingPerson = persons.find((p) => (p.name === updatedName));
+    });
+
     if (match) {
       if (
         window.confirm(
           `${personObj.name} is already in your contacts. Replace current number with new number?`
         )
       ) {
-        personsService.update(matchingPerson.id, personObj)
+        personsService.update(matchingPerson, personObj)
         .then(() => {
-          const newPersons = persons.map((p) => {
-            if (p.name === updatedName) {
-              return {
-                ...p,
-                number: updatedNumber,
-              };
-            } else {
-              return {
-                ...p,
-              };
-            }
-          });
-
-          console.log(newPersons);
-          setPersons(newPersons);
-        });
+            setPersons(
+              persons.map((person) =>
+                matchingPerson.id !== person.id
+                  ? person
+                  : { ...matchingPerson, number: updatedNumber }
+              )
+            );
+        })
+        .catch(() => {
+          setMessageType("error")
+          setMessage(`${updatedName} has already been removed from server`)
+          setTimeout(() => {
+            setMessage(null);
+          }, 5000);
+        })
       }
     } else {
       personsService.create(personObj).then((returnedPerson) => {
         setPersons(persons.concat(returnedPerson));
+        setMessageType("success");
+        setMessage(`${personObj.name} has been added to the phonebook`);
+        setTimeout(() => {
+          setMessage(null);
+        }, 5000);
       });
     }
     setNewName("");
@@ -105,6 +112,7 @@ const App = () => {
   return (
     <div>
       <h1>Phonebook</h1>
+      <Notification message={message} messageType={messageType} />
       <h2>Add New Contact</h2>
       <Form
         addPerson={addPerson}
