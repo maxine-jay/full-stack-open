@@ -2,7 +2,13 @@ const express = require("express");
 const morgan = require("morgan");
 const app = express();
 app.use(express.json());
-app.use(morgan("tiny"));
+app.use(morgan(':method :url :body'));
+
+
+morgan.token('body', req => {
+    return JSON.stringify(req.body)
+})
+
 
 let persons = [
   {
@@ -55,11 +61,12 @@ app.get("/api/persons/:id", (req, res) => {
 
 const generateId = () => {
   const maxId = persons.length > 0 ? Math.max(...persons.map((p) => p.id)) : 0;
-  return maxId;
+  return maxId + 1;
 };
+
 app.post("/api/persons/", (req, res) => {
   const person = req.body;
-  person.id = generateId();
+  const id = generateId();
   let nameMatch = persons.find((p) => p.name === person.name) ? true : false;
 
   if (person.name.length === 0) {
@@ -70,20 +77,22 @@ app.post("/api/persons/", (req, res) => {
     return res.status(400).json({
       error: "Number missing",
     });
-  } else if(nameMatch) {
+  } else if (nameMatch) {
     return res.status(400).json({
-        error: "Name must be unique. A contact with this name already exists in the phonebook",
-      });
+      error:
+        "Name must be unique. A contact with this name already exists in the phonebook",
+    });
   }
 
   const newPerson = {
     name: person.name,
     number: person.number,
-    id: person.id,
+    id: id,
   };
 
   persons = persons.concat(newPerson);
   res.json(newPerson);
+//   morgan.token("bodyJSON", (req) => JSON.stringify(req.body || {}));
 });
 
 app.delete("/api/persons/:id", (req, res) => {
